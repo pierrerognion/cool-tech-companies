@@ -13,21 +13,22 @@ class App extends Component {
       companies: [],
       allcompanies: [],
       selectedCompany: null,
-      search: "",
+      search: ""
     };
   }
 
   componentDidMount() {
-
     fetch(
-      `https://api.airtable.com/v0/${process.env.REACT_APP_AIRTABLE_BASE_KEY}/Cool%20Companies?api_key=${process.env.REACT_APP_AIRTABLE_API_KEY}`
-    )
+      `https://api.airtable.com/v0/${
+        process.env.REACT_APP_AIRTABLE_BASE_KEY
+      }/Cool%20Companies?api_key=${process.env.REACT_APP_AIRTABLE_API_KEY}`
+    ) // Fetch data from Airtable Base with companies
       .then(response => response.json())
       .then(data => {
         this.setState({
           companies: data.records,
           allcompanies: data.records,
-          selectedCompany: data.records[0],
+          selectedCompany: data.records[0]
         });
       });
   }
@@ -41,14 +42,13 @@ class App extends Component {
   handleSearch = event => {
     this.setState({
       search: event.target.value,
-      companies: this.state.companies.filter(company =>
+      companies: this.state.allcompanies.filter(company =>
         new RegExp(event.target.value, "i").exec(company.fields.Name)
       )
     });
   };
 
   render() {
-
     let center = {
       lat: 48.8566,
       lng: 2.3522
@@ -56,8 +56,8 @@ class App extends Component {
 
     if (this.state.selectedCompany) {
       center = {
-        lat: this.state.selectedCompany.lat,
-        lng: this.state.selectedCompany.lng
+        lat: this.state.selectedCompany.fields.lat,
+        lng: this.state.selectedCompany.fields.lng
       };
     }
 
@@ -73,16 +73,15 @@ class App extends Component {
             />
           </div>
           <div className="companyCards">
-            {this.state.companies.map(element => {
+            {this.state.companies.map(company => {
               return (
                 <CompanyCard
-                  key={element.id}
-                  name={element.fields.Name}
-                  description={element.fields.Notes}
-                  address={element.fields.Address}
-                  lat={element.fields.lat}
-                  lng={element.fields.lng}
-                  imageUrl={element.fields.imageURL[0].url}
+                  key={company.id}
+                  company={company}
+                  name={company.fields.Name}
+                  description={company.fields.Notes}
+                  address={company.fields.Address}
+                  imageUrl={company.fields.imageURL[0].url}
                   selectCompany={this.selectCompany}
                 />
               );
@@ -98,15 +97,16 @@ class App extends Component {
             }}
             yesIWantToUseGoogleMapApiInternals
           >
-            {this.state.companies.map(element => { // Map markers
+            {this.state.companies.map(company => {
+              // Map markers
               return (
                 <Marker // A marker is returned for each company
-                  {...element}
-                  key={element.id}
-                  selected={element === this.state.selectedCompany}
-                  lat={element.fields.lat}
-                  lng={element.fields.lng}
-                  name={element.fields.Name}
+                  {...company}
+                  key={company.id}
+                  selected={company === this.state.selectedCompany}
+                  lat={company.fields.lat}
+                  lng={company.fields.lng}
+                  name={company.fields.Name}
                 />
               );
             })}
