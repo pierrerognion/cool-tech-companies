@@ -1,54 +1,116 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { Component } from "react";
+//import logo from './logo.svg';
+import GoogleMapReact from "google-map-react";
 
-const companies = [
-  {
-      name: 'Bankin',
-      description: 'Finance and budget tracker.',
-      imageURL: 'https://via.placeholder.com/362x200',
-      address: '4 Rue de la Pierre Levée, 75011 Paris'
-  },
-  {
-      name: 'Lydia',
-      description: 'Micro-payment app.',
-      imageURL: 'https://via.placeholder.com/362x200',
-      address: '137 rue d’Aboukir, 75002 Paris'
-  }]
+import CompanyCard from "./components/CompanyCard";
+import Marker from "./components/marker";
+import "./App.css";
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      companies: [],
+      allcompanies: [],
+      selectedCompany: null,
+      search: "",
+    };
+  }
+
+  componentDidMount() {
+
+    fetch(
+      `https://api.airtable.com/v0/${process.env.REACT_APP_AIRTABLE_BASE_KEY}/Cool%20Companies?api_key=${process.env.REACT_APP_AIRTABLE_API_KEY}`
+    )
+      .then(response => response.json())
+      .then(data => {
+        this.setState({
+          companies: data.records,
+          allcompanies: data.records,
+          selectedCompany: data.records[0],
+        });
+      });
+  }
+
+  selectCompany = company => {
+    this.setState({
+      selectedCompany: company
+    });
+  };
+
+  handleSearch = event => {
+    this.setState({
+      search: event.target.value,
+      companies: this.state.companies.filter(company =>
+        new RegExp(event.target.value, "i").exec(company.fields.Name)
+      )
+    });
+  };
+
   render() {
+
+    let center = {
+      lat: 48.8566,
+      lng: 2.3522
+    };
+
+    if (this.state.selectedCompany) {
+      center = {
+        lat: this.state.selectedCompany.lat,
+        lng: this.state.selectedCompany.lng
+      };
+    }
+
     return (
-      <div className="container mt-5">
-        <div className="row">
-          <div className="col">
-            <div className="card-deck">
-              <div className="card">
-                <img className="card-img-top" src="https://via.placeholder.com/362x200" alt="Card image cap" />
-                <div className="card-body">
-                  <h5 className="card-title">Card title</h5>
-                  <p className="card-text">This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-                  <p className="card-text"><small className="text-muted">Last updated 3 mins ago</small></p>
-                </div>
-              </div>
-              <div className="card">
-                <img className="card-img-top" src="https://via.placeholder.com/362x200" alt="Card image cap" />
-                <div className="card-body">
-                  <h5 className="card-title">Card title</h5>
-                  <p className="card-text">This card has supporting text below as a natural lead-in to additional content.</p>
-                  <p className="card-text"><small className="text-muted">Last updated 3 mins ago</small></p>
-                </div>
-              </div>
-              <div className="card">
-                <img className="card-img-top" src="https://via.placeholder.com/362x200" alt="Card image cap" />
-                <div className="card-body">
-                  <h5 className="card-title">Card title</h5>
-                  <p className="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This card has even longer content than the first to show that equal height action.</p>
-                  <p className="card-text"><small className="text-muted">Last updated 3 mins ago</small></p>
-                </div>
-              </div>
-            </div>
+      <div className="app">
+        <div className="main">
+          <div className="search">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={this.state.search}
+              onChange={this.handleSearch}
+            />
           </div>
+          <div className="companyCards">
+            {this.state.companies.map(element => {
+              return (
+                <CompanyCard
+                  key={element.id}
+                  name={element.fields.Name}
+                  description={element.fields.Notes}
+                  address={element.fields.Address}
+                  lat={element.fields.lat}
+                  lng={element.fields.lng}
+                  imageUrl={element.fields.imageURL[0].url}
+                  selectCompany={this.selectCompany}
+                />
+              );
+            })}
+          </div>
+        </div>
+        <div className="map">
+          <GoogleMapReact // Google Map Component
+            center={center}
+            zoom={14}
+            bootstrapURLKeys={{
+              key: `${process.env.REACT_APP_GOOGLE_API_KEY}`
+            }}
+            yesIWantToUseGoogleMapApiInternals
+          >
+            {this.state.companies.map(element => { // Map markers
+              return (
+                <Marker // A marker is returned for each company
+                  {...element}
+                  key={element.id}
+                  selected={element === this.state.selectedCompany}
+                  lat={element.fields.lat}
+                  lng={element.fields.lng}
+                  name={element.fields.Name}
+                />
+              );
+            })}
+          </GoogleMapReact>
         </div>
       </div>
     );
